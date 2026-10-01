@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Image Direct Uploader</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #c9d1d9; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .box { background: #161b22; border: 1px solid #30363d; padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    h2 { color: #38bdf8; text-align: center; margin-bottom: 15px; font-size: 20px; font-weight: 800; }
+    label { display: block; font-size: 13px; margin: 12px 0 6px; color: #8b949e; font-weight: 600; }
+    input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 11px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
+    input:focus { border-color: #38bdf8; }
+    button { width: 100%; padding: 12px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 15px; transition: 0.2s; }
+    button:hover { background: #0369a1; }
+    .result { margin-top: 15px; background: #0d1117; padding: 12px; border-radius: 8px; word-break: break-all; border: 1px solid #38bdf8; display: none; }
+    .copy-btn { background: #10b981; margin-top: 10px; }
+    .copy-btn:hover { background: #059669; }
+    .preview { width: 100%; max-height: 220px; object-fit: contain; margin-top: 12px; border-radius: 8px; border: 1px solid #30363d; display: none; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- পাসওয়ার্ড লগইন সেকশন -->
+  <div id="login-box" class="box">
+    <h2>🔒 Uploader Access Control</h2>
+    <label>গোপন পাসওয়ার্ড লিখুন:</label>
+    <input type="password" id="pass-input" placeholder="পাসওয়ার্ড লিখুন..." autocomplete="off">
+    <button onclick="checkPassword()">Login</button>
+  </div>
+
+  <!-- মূল ইমেজ আপলোডার সেকশন -->
+  <div id="uploader-box" class="box hidden">
+    <h2>📸 GitHub Image Direct Uploader</h2>
+
+    <label>🔑 GitHub Personal Access Token (একবার দিলেই সেভ থাকবে):</label>
+    <input type="text" id="token" placeholder="ghp_xxxxxxxxxxxxxx">
+
+    <label>🖼️ ছবি সিলেক্ট করুন:</label>
+    <input type="file" id="fileInput" accept="image/*" onchange="previewImage()">
+    <img id="imgPreview" class="preview">
+
+    <button onclick="uploadToGitHub()" id="uploadBtn">⚡ Upload & Get Direct Link</button>
+
+    <div id="resultBox" class="result">
+      <p style="font-size:12px; color:#10b981; font-weight:bold;">✅ সফলভাবে আপলোড হয়েছে!</p>
+      <p id="directLink" style="font-size:13px; color:#38bdf8; margin-top:6px; font-weight:600;"></p>
+      <button class="copy-btn" onclick="copyLink()">📋 Copy Direct Link</button>
+    </div>
+  </div>
+
+<script>
+  const SECRET_PASS = "arafat01721313101";
+
+  function checkPassword() {
+    const enteredPass = document.getElementById('pass-input').value;
+    if (enteredPass === SECRET_PASS) {
+      document.getElementById('login-box').classList.add('hidden');
+      document.getElementById('uploader-box').classList.remove('hidden');
+      document.getElementById('token').value = localStorage.getItem('gh_token') || '';
+    } else {
+      alert('ভুল পাসওয়ার্ড!');
+    }
+  }
+
+  function previewImage() {
+    const file = document.getElementById('fileInput').files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.getElementById('imgPreview');
+        img.src = e.target.result;
+        img.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function uploadToGitHub() {
+    const token = document.getElementById('token').value.trim();
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    if (!token) return alert('GitHub Personal Access Token দিন!');
+    if (!file) return alert('একটি ছবি সিলেক্ট করুন!');
+
+    localStorage.setItem('gh_token', token);
+
+    uploadBtn.innerText = "⏳ আপলোড হচ্ছে...";
+    uploadBtn.disabled = true;
+
+    // Clean File Name
+    const cleanFileName = Date.now() + '_' + file.name.replace(/\s+/g, '-');
+    const repoOwner = "arafathossainlimon11";
+    const repoName = "anime-posters";
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async function() {
+      const base64Content = reader.result.split(',')[1];
+      const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${cleanFileName}`;
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Upload ${cleanFileName}`,
+            content: base64Content
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          const cdnUrl = `https://cdn.jsdelivr.net/gh/${repoOwner}/${repoName}/${cleanFileName}`;
+          document.getElementById('directLink').innerText = cdnUrl;
+          document.getElementById('resultBox').style.display = 'block';
+        } else {
+          alert('Error: ' + (data.message || 'আপলোড ব্যর্থ হয়েছে! Token ঠিক আছে কিনা দেখুন।'));
+        }
+      } catch (err) {
+        alert('নেটওয়ার্ক সমস্যা বা টোকেন ভুল!');
+      } finally {
+        uploadBtn.innerText = "⚡ Upload & Get Direct Link";
+        uploadBtn.disabled = false;
+      }
+    };
+  }
+
+  function copyLink() {
+    const linkText = document.getElementById('directLink').innerText;
+    navigator.clipboard.writeText(linkText);
+    alert('📋 ডাইরেক্ট ইমেজ লিংক কপি করা হয়েছে!');
+  }
+</script>
+
+</body>
+  </html>
