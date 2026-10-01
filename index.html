@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arafat Personal Unlimited Catbox Cloud</title>
+    <title>Arafat Personal Telegram Cloud</title>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -78,7 +78,7 @@
     <!-- Main Dashboard -->
     <div class="dashboard" id="dashboard">
         <div class="header">
-            <h1>🎨 Animation & Movie Unlimited Image Cloud</h1>
+            <h1>🎨 Animation & Movie Unlimited Telegram Cloud</h1>
         </div>
 
         <div class="nav-tabs">
@@ -94,7 +94,7 @@
             </div>
             <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleUpload(this.files[0])">
 
-            <div class="status-msg" id="statusMsg">⏳ আনলিমিটেড সার্ভারে ছবি আপলোড হচ্ছে...</div>
+            <div class="status-msg" id="statusMsg">⏳ টেলিগ্রাম বোটের মাধ্যমে আপলোড হচ্ছে...</div>
 
             <div class="result-box" id="resultBox">
                 <img id="previewImg" class="preview-img" src="" alt="Preview">
@@ -116,6 +116,10 @@
 
 <script>
     const CORRECT_PASS = "arafat01721313101";
+
+    // টেলিগ্রাম বোট টোকেন ও চ্যানেল ইউজারনেম সেট করা হয়েছে
+    const BOT_TOKEN = "8928084504:AAFAQVSzs3_HPvuEss3Rbei2RN5VrPZLpWY";
+    const CHAT_ID = "@PocketCashbd12";
 
     function checkAuth() {
         const input = document.getElementById('passInput').value;
@@ -139,7 +143,7 @@
         element.classList.add('active');
     }
 
-    // Catbox Unlimited Upload
+    // Direct Telegram Bot API Upload
     async function handleUpload(file) {
         if (!file) return;
 
@@ -150,33 +154,49 @@
         resultBox.style.display = 'none';
 
         const formData = new FormData();
-        formData.append('reqtype', 'fileupload');
-        formData.append('fileToUpload', file);
+        formData.append('chat_id', CHAT_ID);
+        formData.append('photo', file);
 
         try {
-            // Using CORS Proxy with Catbox API
-            const response = await fetch('https://corsproxy.io/?https://catbox.moe/user/api.php', {
+            // ১. চ্যানেলে ফটো পোস্ট করা
+            const sendRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
                 body: formData
             });
 
-            const directUrl = await response.text();
-            statusMsg.style.display = 'none';
+            const sendData = await sendRes.json();
 
-            if (directUrl && directUrl.trim().startsWith('https://')) {
-                const finalUrl = directUrl.trim();
-                
-                document.getElementById('previewImg').src = finalUrl;
-                document.getElementById('directLink').value = finalUrl;
-                resultBox.style.display = 'block';
-
-                saveToHistory(finalUrl);
-            } else {
-                alert('ছবি আপলোড করা সম্ভব হয়নি। আবার চেষ্টা করুন।');
+            if (!sendData.ok) {
+                throw new Error(sendData.description || 'ফটো পাঠাতে ব্যর্থ হয়েছে! নিশ্চিত করুন বোটটি চ্যানেলের Admin কিনা।');
             }
+
+            // সবচেয়ে বড় সাইজের ছবির file_id নেওয়া
+            const photos = sendData.result.photo;
+            const fileId = photos[photos.length - 1].file_id;
+
+            // ২. ফাইল পাথ (File Path) আনা
+            const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const fileData = await fileRes.json();
+
+            if (!fileData.ok) {
+                throw new Error('ফাইল পাথ আনা সম্ভব হয়নি!');
+            }
+
+            const filePath = fileData.result.file_path;
+            
+            // ৩. অনলাইন ডিরেক্ট লিংক তৈরি
+            const directUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
+
+            statusMsg.style.display = 'none';
+            document.getElementById('previewImg').src = directUrl;
+            document.getElementById('directLink').value = directUrl;
+            resultBox.style.display = 'block';
+
+            saveToHistory(directUrl);
+
         } catch (error) {
             statusMsg.style.display = 'none';
-            alert('নেটওয়ার্ক সমস্যা! সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।');
+            alert('আপলোড সমস্যা: ' + error.message);
         }
     }
 
@@ -220,4 +240,4 @@
     }
 </script>
 </body>
-</html>
+            </html>
