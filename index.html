@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arafat Personal Image Cloud</title>
+    <title>Arafat Personal Telegram Cloud</title>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -19,7 +19,7 @@
         * { box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; margin: 0; padding: 0; }
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
 
-        /* Login Screen */
+        /* Lock Screen */
         .login-card { background: var(--card-bg); padding: 35px 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 400px; text-align: center; border: 1px solid #334155; }
         .login-card h2 { color: var(--accent); margin-bottom: 10px; font-size: 24px; }
         .login-card p { color: var(--text-sub); margin-bottom: 20px; font-size: 14px; }
@@ -67,7 +67,7 @@
 </head>
 <body>
 
-    <!-- 1. Lock Screen -->
+    <!-- Lock Screen -->
     <div class="login-card" id="loginCard">
         <h2>🔒 Arafat Image Cloud</h2>
         <p>ওয়েবসাইটে প্রবেশ করতে পাসওয়ার্ড দিন</p>
@@ -75,10 +75,10 @@
         <button class="btn" onclick="checkAuth()">আনলক করুন</button>
     </div>
 
-    <!-- 2. Main Dashboard -->
+    <!-- Main Dashboard -->
     <div class="dashboard" id="dashboard">
         <div class="header">
-            <h1>🎨 Animation & Movie Image Server</h1>
+            <h1>🎨 Animation & Movie Unlimited Telegram Cloud</h1>
         </div>
 
         <div class="nav-tabs">
@@ -94,7 +94,7 @@
             </div>
             <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleUpload(this.files[0])">
 
-            <div class="status-msg" id="statusMsg">⏳ ফাইল আপলোড হচ্ছে, অপেক্ষা করুন...</div>
+            <div class="status-msg" id="statusMsg">⏳ টেলিগ্রাম বোটের মাধ্যমে আপলোড হচ্ছে...</div>
 
             <div class="result-box" id="resultBox">
                 <img id="previewImg" class="preview-img" src="" alt="Preview">
@@ -117,7 +117,12 @@
 <script>
     const CORRECT_PASS = "arafat01721313101";
 
-    // Authentication Check
+    // টেলিগ্রাম বোট টোকেন
+    const BOT_TOKEN = "8928084504:AAFAQVSzs3_HPvuEss3Rbei2RN5VrPZLpWY";
+
+    // 🔴 আপনার তৈরি করা টেলিগ্রাম পাবলিক চ্যানেলের ইউজারনেম এখানে বসাবেন
+    const CHAT_ID = "@YOUR_TELEGRAM_CHANNEL_USERNAME"; 
+
     function checkAuth() {
         const input = document.getElementById('passInput').value;
         if (input === CORRECT_PASS) {
@@ -140,9 +145,14 @@
         element.classList.add('active');
     }
 
-    // Image Upload with Fallback API
+    // Direct Telegram Bot API Upload
     async function handleUpload(file) {
         if (!file) return;
+
+        if (CHAT_ID === "@YOUR_TELEGRAM_CHANNEL_USERNAME") {
+            alert("দয়া করে কোডের ভেতরে CHAT_ID এর জায়গায় আপনার টেলিগ্রাম চ্যানেলের ইউজারনেম বসান!");
+            return;
+        }
 
         const statusMsg = document.getElementById('statusMsg');
         const resultBox = document.getElementById('resultBox');
@@ -150,52 +160,50 @@
         statusMsg.style.display = 'block';
         resultBox.style.display = 'none';
 
-        let imageUrl = null;
+        const formData = new FormData();
+        formData.append('chat_id', CHAT_ID);
+        formData.append('photo', file);
 
-        // Try ImgBB API
         try {
-            const formData = new FormData();
-            formData.append('image', file);
-            const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e60d4e927d3701f0e9e64139ee9', {
+            // ১. চ্যানেলে ফটো পোস্ট করা
+            const sendRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
                 body: formData
             });
-            const data = await res.json();
-            if (data && data.success && data.data && data.data.url) {
-                imageUrl = data.data.url;
+
+            const sendData = await sendRes.json();
+
+            if (!sendData.ok) {
+                throw new Error(sendData.description || 'ফটো পাঠাতে ব্যর্থ হয়েছে!');
             }
-        } catch (e) {
-            console.log("Error trying main host, switching to proxy...", e);
-        }
 
-        // Fallback to Telegraph via Proxy
-        if (!imageUrl) {
-            try {
-                const formData = new FormData();
-                formData.append('file', file);
-                const res = await fetch('https://corsproxy.io/?https://telegra.ph/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (data && data[0] && data[0].src) {
-                    imageUrl = 'https://telegra.ph' + data[0].src;
-                }
-            } catch (e) {
-                console.log("Error in proxy...", e);
+            // সবচেয়ে বড় সাইজের ছবির file_id নেওয়া
+            const photos = sendData.result.photo;
+            const fileId = photos[photos.length - 1].file_id;
+
+            // ২. ফাইল পাথ (File Path) আনা
+            const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const fileData = await fileRes.json();
+
+            if (!fileData.ok) {
+                throw new Error('ফাইল পাথ আনা সম্ভব হয়নি!');
             }
-        }
 
-        statusMsg.style.display = 'none';
+            const filePath = fileData.result.file_path;
+            
+            // ৩. অনলাইন ডিরেক্ট লিংক তৈরি
+            const directUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
 
-        if (imageUrl) {
-            document.getElementById('previewImg').src = imageUrl;
-            document.getElementById('directLink').value = imageUrl;
+            statusMsg.style.display = 'none';
+            document.getElementById('previewImg').src = directUrl;
+            document.getElementById('directLink').value = directUrl;
             resultBox.style.display = 'block';
 
-            saveToHistory(imageUrl);
-        } else {
-            alert('ছবি আপলোড করা সম্ভব হয়নি। দয়া করে আবার চেষ্টা করুন।');
+            saveToHistory(directUrl);
+
+        } catch (error) {
+            statusMsg.style.display = 'none';
+            alert('আপলোড সমস্যা: ' + error.message);
         }
     }
 
@@ -239,4 +247,4 @@
     }
 </script>
 </body>
-</html>
+    </html>
